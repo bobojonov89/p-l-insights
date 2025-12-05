@@ -9,6 +9,7 @@ import { PnLHeader } from "./PnLHeader";
 import { LocationReport } from "./LocationReport";
 import { ViewToggle, ViewMode } from "./ViewToggle";
 import { TimeTrendChart } from "./TimeTrendChart";
+import { MetricsGrid } from "./MetricsGrid";
 import { DateRange, DatePreset } from "./DateRangeFilter";
 import { DollarSign, TrendingUp, Receipt, Activity } from "lucide-react";
 import { format } from "date-fns";
@@ -67,24 +68,24 @@ export function PnLDashboard() {
         {activeView === "overview" ? (
           <>
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <SummaryCard
                 title="Total Revenue"
                 value={formatCurrency(summary.totalRevenue)}
                 subtitle={`${mockPnLData.length} locations`}
                 icon={DollarSign}
                 trend="up"
-                trendValue="12.5% vs last period"
+                trendValue={`${summary.revenueGrowth?.toFixed(1) || '0'}% vs last period`}
                 variant="neutral"
                 delay={0}
               />
               <SummaryCard
                 title="Total Expenses"
                 value={formatCurrency(summary.totalExpenses)}
-                subtitle="All categories"
+                subtitle={`${summary.expenseRatio.toFixed(1)}% of revenue`}
                 icon={Receipt}
-                trend="down"
-                trendValue="3.2% vs last period"
+                trend={summary.expenseRatio < 75 ? "down" : "up"}
+                trendValue={summary.expenseRatio < 75 ? "Healthy" : "High ratio"}
                 variant="neutral"
                 delay={50}
               />
@@ -94,7 +95,7 @@ export function PnLDashboard() {
                 subtitle={`${summary.profitMargin.toFixed(1)}% margin`}
                 icon={TrendingUp}
                 trend={summary.netProfit >= 0 ? "up" : "down"}
-                trendValue="8.7% vs last period"
+                trendValue={`${summary.profitGrowth?.toFixed(1) || '0'}% vs last period`}
                 variant={summary.netProfit >= 0 ? "profit" : "loss"}
                 delay={100}
               />
@@ -103,20 +104,32 @@ export function PnLDashboard() {
                 value={summary.totalTransactions.toLocaleString()}
                 subtitle="This period"
                 icon={Activity}
-                trend="up"
-                trendValue="5.4% vs last period"
+                trend={summary.transactionGrowth && summary.transactionGrowth >= 0 ? "up" : "down"}
+                trendValue={`${summary.transactionGrowth?.toFixed(1) || '0'}% vs last period`}
                 variant="neutral"
                 delay={150}
               />
             </div>
 
+            {/* Metrics Grid */}
+            <div className="mb-6">
+              <MetricsGrid
+                profitMargin={summary.profitMargin}
+                expenseRatio={summary.expenseRatio}
+                avgTransactionValue={summary.totalRevenue / summary.totalTransactions}
+                avgProfit={summary.netProfit / summary.totalTransactions}
+                revenueGrowth={summary.revenueGrowth}
+                profitGrowth={summary.profitGrowth}
+              />
+            </div>
+
             {/* Time Trend Chart */}
-            <div className="mb-8">
+            <div className="mb-6">
               <TimeTrendChart datePreset={datePreset} />
             </div>
 
             {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
               <div className="lg:col-span-2">
                 <RevenueChart data={mockPnLData} />
               </div>
