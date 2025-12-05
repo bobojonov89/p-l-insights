@@ -3,10 +3,12 @@ import { getAmount } from "@/data/mockPnLData";
 import { cn } from "@/lib/utils";
 import { 
   Trophy, TrendingUp, TrendingDown, MapPin, 
-  DollarSign, Receipt, Activity, ChevronRight,
-  Building2
+  DollarSign, Receipt, ChevronRight,
+  Building2, User, ArrowUpRight, ArrowDownRight, AlertTriangle
 } from "lucide-react";
 import { useState } from "react";
+import { PerformanceStatusBadge } from "./PerformanceStatusBadge";
+import { AlertsPanel } from "./AlertsPanel";
 
 interface LocationReportProps {
   data: ProfitAndLoss[];
@@ -52,7 +54,6 @@ export function LocationReport({ data }: LocationReportProps) {
           const revenue = getAmount(location.revenue);
           const profit = getAmount(location.profit);
           const totalExpenses = location.expenses.reduce((sum, exp) => sum + getAmount(exp.totalAmount), 0);
-          const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
           const isProfit = profit >= 0;
           const isExpanded = expandedLocation === location.locationId;
 
@@ -78,17 +79,24 @@ export function LocationReport({ data }: LocationReportProps) {
                     <h3 className="font-semibold text-foreground truncate">
                       {location.locationName}
                     </h3>
+                    <PerformanceStatusBadge status={location.performanceStatus} showIcon={false} />
                   </div>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                    {location.managerName && (
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <User className="h-3 w-3" />
+                        {location.managerName}
+                      </span>
+                    )}
                     <span className="text-muted-foreground">
                       {location.transactions.toLocaleString()} transactions
                     </span>
-                    <span className={cn(
-                      "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
-                      isProfit ? "bg-profit/10 text-profit" : "bg-loss/10 text-loss"
-                    )}>
-                      {margin.toFixed(1)}% margin
-                    </span>
+                    {location.alerts.length > 0 && (
+                      <span className="text-amber-400 flex items-center gap-1 text-xs">
+                        <AlertTriangle className="h-3 w-3" />
+                        {location.alerts.length} alert{location.alerts.length > 1 ? 's' : ''}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -96,9 +104,16 @@ export function LocationReport({ data }: LocationReportProps) {
                 <div className="hidden sm:flex items-center gap-8">
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground mb-0.5">Revenue</p>
-                    <p className="font-mono-numbers font-medium text-foreground">
-                      {formatCurrency(revenue)}
-                    </p>
+                    <div className="flex items-center gap-1 justify-end">
+                      <p className="font-mono-numbers font-medium text-foreground">
+                        {formatCurrency(revenue)}
+                      </p>
+                      {location.revenueGrowth !== undefined && (
+                        <span className={cn("text-xs flex items-center", location.revenueGrowth >= 0 ? "text-emerald-400" : "text-red-400")}>
+                          {location.revenueGrowth >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground mb-0.5">Profit</p>
@@ -128,37 +143,40 @@ export function LocationReport({ data }: LocationReportProps) {
               {/* Expanded Details */}
               {isExpanded && (
                 <div className="px-4 sm:px-6 pb-6 pt-2 bg-muted/5 animate-fade-in">
-                  {/* Mobile Metrics */}
-                  <div className="sm:hidden grid grid-cols-2 gap-4 mb-6">
+                  {/* Performance Metrics */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
                     <div className="bg-card rounded-lg p-3 border border-border">
-                      <div className="flex items-center gap-2 mb-1">
-                        <DollarSign className="h-4 w-4 text-neutral" />
-                        <span className="text-xs text-muted-foreground">Revenue</span>
-                      </div>
-                      <p className="font-mono-numbers font-semibold text-foreground">
-                        {formatCurrency(revenue)}
+                      <p className="text-xs text-muted-foreground">Profit Margin</p>
+                      <p className={cn("font-mono-numbers text-lg font-bold", location.profitMargin >= 0 ? "text-profit" : "text-loss")}>
+                        {location.profitMargin.toFixed(1)}%
                       </p>
                     </div>
-                    <div className={cn(
-                      "rounded-lg p-3 border",
-                      isProfit ? "bg-profit/5 border-profit/20" : "bg-loss/5 border-loss/20"
-                    )}>
-                      <div className="flex items-center gap-2 mb-1">
-                        {isProfit ? (
-                          <TrendingUp className="h-4 w-4 text-profit" />
-                        ) : (
-                          <TrendingDown className="h-4 w-4 text-loss" />
-                        )}
-                        <span className="text-xs text-muted-foreground">Profit</span>
-                      </div>
-                      <p className={cn(
-                        "font-mono-numbers font-semibold",
-                        isProfit ? "text-profit" : "text-loss"
-                      )}>
-                        {formatCurrency(profit)}
+                    <div className="bg-card rounded-lg p-3 border border-border">
+                      <p className="text-xs text-muted-foreground">Expense Ratio</p>
+                      <p className={cn("font-mono-numbers text-lg font-bold", location.expenseRatio > 80 ? "text-loss" : "text-foreground")}>
+                        {location.expenseRatio.toFixed(1)}%
+                      </p>
+                    </div>
+                    <div className="bg-card rounded-lg p-3 border border-border">
+                      <p className="text-xs text-muted-foreground">Avg Transaction</p>
+                      <p className="font-mono-numbers text-lg font-bold text-foreground">
+                        ${location.averageTransactionValue.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="bg-card rounded-lg p-3 border border-border">
+                      <p className="text-xs text-muted-foreground">Avg Profit/Txn</p>
+                      <p className={cn("font-mono-numbers text-lg font-bold", location.averageProfit >= 0 ? "text-profit" : "text-loss")}>
+                        ${location.averageProfit.toFixed(2)}
                       </p>
                     </div>
                   </div>
+
+                  {/* Alerts */}
+                  {location.alerts.length > 0 && (
+                    <div className="mb-6">
+                      <AlertsPanel alerts={location.alerts} />
+                    </div>
+                  )}
 
                   {/* Expense Breakdown */}
                   <div>
@@ -167,9 +185,8 @@ export function LocationReport({ data }: LocationReportProps) {
                       Expense Breakdown
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                      {location.expenses.map((expense, expIndex) => {
+                      {location.expenses.map((expense) => {
                         const expAmount = getAmount(expense.totalAmount);
-                        const expPercent = totalExpenses > 0 ? (expAmount / totalExpenses) * 100 : 0;
                         
                         return (
                           <div 
@@ -181,20 +198,28 @@ export function LocationReport({ data }: LocationReportProps) {
                                 {expense.expenseType}
                               </span>
                               <span className="text-xs text-muted-foreground">
-                                {expPercent.toFixed(1)}%
+                                {expense.percentage.toFixed(1)}%
                               </span>
                             </div>
                             <p className="font-mono-numbers text-lg font-semibold text-foreground">
                               {formatCurrency(expAmount)}
                             </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {expense.totalCount} items
-                            </p>
+                            <div className="flex items-center justify-between mt-1">
+                              <p className="text-xs text-muted-foreground">
+                                {expense.totalCount} items
+                              </p>
+                              {expense.growth !== undefined && (
+                                <span className={cn("text-xs flex items-center", expense.growth >= 0 ? "text-red-400" : "text-emerald-400")}>
+                                  {expense.growth >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                                  {Math.abs(expense.growth).toFixed(1)}%
+                                </span>
+                              )}
+                            </div>
                             {/* Progress bar */}
                             <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
                               <div 
                                 className="h-full bg-primary rounded-full transition-all duration-500"
-                                style={{ width: `${expPercent}%` }}
+                                style={{ width: `${expense.percentage}%` }}
                               />
                             </div>
                           </div>

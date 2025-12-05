@@ -1,7 +1,8 @@
 import { ProfitAndLoss } from "@/types/pnl";
 import { getAmount } from "@/data/mockPnLData";
 import { cn } from "@/lib/utils";
-import { Trophy, TrendingUp, TrendingDown, MapPin } from "lucide-react";
+import { Trophy, TrendingUp, TrendingDown, MapPin, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { PerformanceStatusBadge } from "./PerformanceStatusBadge";
 
 interface LocationTableProps {
   data: ProfitAndLoss[];
@@ -40,22 +41,21 @@ export function LocationTable({ data }: LocationTableProps) {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border bg-muted/30">
-              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Rank</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Location</th>
-              <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Revenue</th>
-              <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Expenses</th>
-              <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Profit</th>
-              <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Margin</th>
-              <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Transactions</th>
+              <th className="px-4 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Rank</th>
+              <th className="px-4 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Location</th>
+              <th className="px-4 py-4 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
+              <th className="px-4 py-4 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Revenue</th>
+              <th className="px-4 py-4 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Profit</th>
+              <th className="px-4 py-4 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Margin</th>
+              <th className="px-4 py-4 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Growth</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {sortedData.map((location, index) => {
               const revenue = getAmount(location.revenue);
               const profit = getAmount(location.profit);
-              const totalExpenses = location.expenses.reduce((sum, exp) => sum + getAmount(exp.totalAmount), 0);
-              const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
               const isProfit = profit >= 0;
+              const growth = location.revenueGrowth;
 
               return (
                 <tr 
@@ -63,12 +63,12 @@ export function LocationTable({ data }: LocationTableProps) {
                   className="transition-colors hover:bg-muted/20 group"
                   style={{ animationDelay: `${500 + index * 50}ms` }}
                 >
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4">
                     <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted">
                       {getRankingBadge(location.ranking)}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
                       <div className={cn(
                         "w-2 h-8 rounded-full",
@@ -76,21 +76,19 @@ export function LocationTable({ data }: LocationTableProps) {
                       )} />
                       <div>
                         <p className="font-medium text-foreground">{location.locationName}</p>
-                        <p className="text-xs text-muted-foreground">{location.locationId}</p>
+                        <p className="text-xs text-muted-foreground">{location.region || location.locationId}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-4 py-4 text-center">
+                    <PerformanceStatusBadge status={location.performanceStatus} showIcon={false} />
+                  </td>
+                  <td className="px-4 py-4 text-right">
                     <span className="font-mono-numbers text-foreground">
                       {formatCurrency(revenue)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <span className="font-mono-numbers text-muted-foreground">
-                      {formatCurrency(totalExpenses)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-4 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       {isProfit ? (
                         <TrendingUp className="h-4 w-4 text-profit" />
@@ -105,18 +103,24 @@ export function LocationTable({ data }: LocationTableProps) {
                       </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-4 py-4 text-right">
                     <span className={cn(
                       "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono-numbers",
                       isProfit ? "bg-profit/10 text-profit" : "bg-loss/10 text-loss"
                     )}>
-                      {margin.toFixed(1)}%
+                      {location.profitMargin.toFixed(1)}%
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <span className="font-mono-numbers text-muted-foreground">
-                      {location.transactions.toLocaleString()}
-                    </span>
+                  <td className="px-4 py-4 text-right">
+                    {growth !== undefined && (
+                      <span className={cn(
+                        "inline-flex items-center text-xs font-medium font-mono-numbers",
+                        growth >= 0 ? "text-emerald-400" : "text-red-400"
+                      )}>
+                        {growth >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                        {Math.abs(growth).toFixed(1)}%
+                      </span>
+                    )}
                   </td>
                 </tr>
               );

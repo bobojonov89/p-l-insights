@@ -1,5 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DatePreset } from "./DateRangeFilter";
+import { DashboardChartData } from "@/types/pnl";
+import { mockPnLData, generateChartData } from "@/data/mockPnLData";
 import {
   AreaChart,
   Area,
@@ -10,95 +12,30 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { format, startOfDay, addHours, addDays, addMonths, subDays, subMonths } from "date-fns";
-
-interface TimeDataPoint {
-  label: string;
-  revenue: number;
-  expenses: number;
-  profit: number;
-}
 
 interface TimeTrendChartProps {
   datePreset: DatePreset;
 }
 
-// Generate mock time-series data based on the granularity
-const generateTimeSeriesData = (preset: DatePreset): TimeDataPoint[] => {
-  const now = new Date();
-  const data: TimeDataPoint[] = [];
-
-  if (preset === "today") {
-    // Hourly data for today (24 hours)
-    const startOfToday = startOfDay(now);
-    for (let i = 0; i < 24; i++) {
-      const hour = addHours(startOfToday, i);
-      const baseRevenue = 8000 + Math.random() * 12000;
-      const baseExpenses = 5000 + Math.random() * 6000;
-      data.push({
-        label: format(hour, "ha"),
-        revenue: Math.round(baseRevenue),
-        expenses: Math.round(baseExpenses),
-        profit: Math.round(baseRevenue - baseExpenses),
-      });
-    }
-  } else if (preset === "this_week") {
-    // Daily data for this week (7 days)
-    for (let i = 6; i >= 0; i--) {
-      const day = subDays(now, i);
-      const baseRevenue = 45000 + Math.random() * 35000;
-      const baseExpenses = 30000 + Math.random() * 20000;
-      data.push({
-        label: format(day, "EEE"),
-        revenue: Math.round(baseRevenue),
-        expenses: Math.round(baseExpenses),
-        profit: Math.round(baseRevenue - baseExpenses),
-      });
-    }
-  } else if (preset === "this_month" || preset === "custom") {
-    // Daily data for a month (30 days)
-    for (let i = 29; i >= 0; i--) {
-      const day = subDays(now, i);
-      const baseRevenue = 45000 + Math.random() * 35000;
-      const baseExpenses = 30000 + Math.random() * 20000;
-      data.push({
-        label: format(day, "MMM d"),
-        revenue: Math.round(baseRevenue),
-        expenses: Math.round(baseExpenses),
-        profit: Math.round(baseRevenue - baseExpenses),
-      });
-    }
-  } else if (preset === "this_year") {
-    // Monthly data for a year (12 months)
-    for (let i = 11; i >= 0; i--) {
-      const month = subMonths(now, i);
-      const baseRevenue = 1200000 + Math.random() * 600000;
-      const baseExpenses = 800000 + Math.random() * 400000;
-      data.push({
-        label: format(month, "MMM"),
-        revenue: Math.round(baseRevenue),
-        expenses: Math.round(baseExpenses),
-        profit: Math.round(baseRevenue - baseExpenses),
-      });
-    }
+const getGranularity = (preset: DatePreset): "HOUR" | "DAY" | "MONTH" | "YEAR" => {
+  switch (preset) {
+    case "today": return "HOUR";
+    case "this_week": return "DAY";
+    case "this_month": return "DAY";
+    case "custom": return "DAY";
+    case "this_year": return "MONTH";
+    default: return "DAY";
   }
-
-  return data;
 };
 
 const getGranularityLabel = (preset: DatePreset): string => {
   switch (preset) {
-    case "today":
-      return "Hourly breakdown";
-    case "this_week":
-      return "Daily breakdown";
-    case "this_month":
-    case "custom":
-      return "Daily breakdown";
-    case "this_year":
-      return "Monthly breakdown";
-    default:
-      return "Breakdown";
+    case "today": return "Hourly breakdown";
+    case "this_week": return "Daily breakdown";
+    case "this_month": return "Daily breakdown";
+    case "custom": return "Daily breakdown";
+    case "this_year": return "Monthly breakdown";
+    default: return "Breakdown";
   }
 };
 
@@ -112,14 +49,69 @@ const formatCurrency = (value: number) => {
   return `$${value}`;
 };
 
+// Aggregate all locations into single time series
+const aggregateChartData = (chartData: DashboardChartData) => {
+  const locationCharts = chartData.profitAndLossCharts;
+  if (locationCharts.length === 0) return [];
+  
+  const firstLocation = locationCharts[0];
+  const timePoints = firstLocation.revenueData.dataPoints.map(dp => dp.label);
+  
+  return timePoints.map((label, index) => {
+    let totalRevenue = 0;
+    let totalExpenses = 0;
+    let totalProfit = 0;
+    
+    locationCharts.forEach(loc => {
+      totalRevenue += loc.revenueData.dataPoints[index]?.value || 0;
+      totalExpenses += loc.expenseData.dataPoints[index]?.value || 0;
+      totalProfit += loc.profitData.dataPoints[index]?.value || 0;
+    });
+    
+    return {
+      label,
+      revenue: totalRevenue,
+      expenses: totalExpenses,
+      profit: totalProfit
+    };
+  });
+};
+
 export function TimeTrendChart({ datePreset }: TimeTrendChartProps) {
-  const data = generateTimeSeriesData(datePreset);
+  const granularity = getGranularity(datePreset);
+  const chartData = generateChartData(mockPnLData, granularity);
+  const data = aggregateChartData(chartData);
+
+  // Calculate totals for the header
+  const totalRevenue = data.reduce((sum, d) => sum + d.revenue, 0);
+  const totalProfit = data.reduce((sum, d) => sum + d.profit, 0);
+  const totalExpenses = data.reduce((sum, d) => sum + d.expenses, 0);
 
   return (
     <Card className="border-border/50 bg-card/50 backdrop-blur">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold">P&L Over Time</CardTitle>
-        <CardDescription>{getGranularityLabel(datePreset)}</CardDescription>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <CardTitle className="text-lg font-semibold">P&L Over Time</CardTitle>
+            <CardDescription>{getGranularityLabel(datePreset)}</CardDescription>
+          </div>
+          <div className="flex gap-6 text-sm">
+            <div>
+              <p className="text-muted-foreground text-xs">Revenue</p>
+              <p className="font-mono-numbers font-semibold text-chart-1">{formatCurrency(totalRevenue)}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Expenses</p>
+              <p className="font-mono-numbers font-semibold text-loss">{formatCurrency(totalExpenses)}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Profit</p>
+              <p className={`font-mono-numbers font-semibold ${totalProfit >= 0 ? 'text-profit' : 'text-loss'}`}>
+                {formatCurrency(totalProfit)}
+              </p>
+            </div>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full">
