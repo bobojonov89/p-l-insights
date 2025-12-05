@@ -8,6 +8,7 @@ import { ProfitTrendCard } from "./ProfitTrendCard";
 import { PnLHeader } from "./PnLHeader";
 import { LocationReport } from "./LocationReport";
 import { ViewToggle, ViewMode } from "./ViewToggle";
+import { TimeTrendChart } from "./TimeTrendChart";
 import { DateRange, DatePreset } from "./DateRangeFilter";
 import { DollarSign, TrendingUp, Receipt, Activity } from "lucide-react";
 import { format } from "date-fns";
@@ -107,6 +108,11 @@ export function PnLDashboard() {
                 variant="neutral"
                 delay={150}
               />
+            </div>
+
+            {/* Time Trend Chart */}
+            <div className="mb-8">
+              <TimeTrendChart datePreset={datePreset} />
             </div>
 
             {/* Charts Row */}
