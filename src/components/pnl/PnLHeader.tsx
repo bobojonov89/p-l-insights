@@ -1,7 +1,12 @@
-import { Calendar, Download, RefreshCw } from "lucide-react";
+import { Download, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DateRangeFilter, DateRange, DatePreset } from "./DateRangeFilter";
 
-export function PnLHeader() {
+interface PnLHeaderProps {
+  onDateRangeChange: (range: DateRange, preset: DatePreset) => void;
+}
+
+export function PnLHeader({ onDateRangeChange }: PnLHeaderProps) {
   return (
     <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 animate-fade-in">
       <div>
@@ -14,11 +19,8 @@ export function PnLHeader() {
       </div>
       
       <div className="flex items-center gap-3">
-        <Button variant="outline" size="sm" className="gap-2">
-          <Calendar className="h-4 w-4" />
-          <span className="hidden sm:inline">Dec 2024</span>
-        </Button>
-        <Button variant="outline" size="sm" className="gap-2">
+        <DateRangeFilter onDateRangeChange={onDateRangeChange} />
+        <Button variant="outline" size="sm" className="gap-2 bg-card border-border hover:bg-muted">
           <RefreshCw className="h-4 w-4" />
           <span className="hidden sm:inline">Refresh</span>
         </Button>
