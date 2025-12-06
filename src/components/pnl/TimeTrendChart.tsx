@@ -3,8 +3,8 @@ import { DatePreset } from "./DateRangeFilter";
 import { DashboardChartData } from "@/types/pnl";
 import { mockPnLData, generateChartData } from "@/data/mockPnLData";
 import {
-  AreaChart,
-  Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -116,28 +116,15 @@ export function TimeTrendChart({ datePreset }: TimeTrendChartProps) {
       <CardContent>
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
+            <BarChart
               data={data}
               margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
             >
-              <defs>
-                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--profit))" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(var(--profit))" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--loss))" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="hsl(var(--loss))" stopOpacity={0} />
-                </linearGradient>
-              </defs>
               <CartesianGrid
                 strokeDasharray="3 3"
                 stroke="hsl(var(--border))"
                 opacity={0.3}
+                vertical={false}
               />
               <XAxis
                 dataKey="label"
@@ -163,6 +150,7 @@ export function TimeTrendChart({ datePreset }: TimeTrendChartProps) {
                 labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600 }}
                 itemStyle={{ color: "hsl(var(--muted-foreground))" }}
                 formatter={(value: number) => [formatCurrency(value), ""]}
+                cursor={{ fill: "hsl(var(--muted))", opacity: 0.3 }}
               />
               <Legend
                 wrapperStyle={{ paddingTop: "20px" }}
@@ -172,34 +160,25 @@ export function TimeTrendChart({ datePreset }: TimeTrendChartProps) {
                   </span>
                 )}
               />
-              <Area
-                type="monotone"
+              <Bar
                 dataKey="revenue"
                 name="Revenue"
-                stroke="hsl(var(--chart-1))"
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#colorRevenue)"
+                fill="hsl(var(--chart-1))"
+                radius={[4, 4, 0, 0]}
               />
-              <Area
-                type="monotone"
+              <Bar
                 dataKey="expenses"
                 name="Expenses"
-                stroke="hsl(var(--loss))"
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#colorExpenses)"
+                fill="hsl(var(--loss))"
+                radius={[4, 4, 0, 0]}
               />
-              <Area
-                type="monotone"
+              <Bar
                 dataKey="profit"
                 name="Profit"
-                stroke="hsl(var(--profit))"
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#colorProfit)"
+                fill="hsl(var(--profit))"
+                radius={[4, 4, 0, 0]}
               />
-            </AreaChart>
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </CardContent>
