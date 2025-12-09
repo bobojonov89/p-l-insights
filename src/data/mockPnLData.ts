@@ -11,7 +11,7 @@ import {
   ExpenseChartData,
   ProfitAndLossChartData
 } from "@/types/pnl";
-import { format, startOfDay, addHours, subDays, subMonths } from "date-fns";
+import { format, startOfDay, startOfMonth, addHours, addDays, subDays, subMonths, getDaysInMonth } from "date-fns";
 
 const createMoney = (amount: number, currency: string = "USD"): Money[] => [
   { amount, currency }
@@ -322,7 +322,8 @@ export const aggregateExpenses = (data: ProfitAndLoss[]) => {
 // Generate chart data matching backend DashboardChartData structure
 export const generateChartData = (
   data: ProfitAndLoss[], 
-  granularity: "HOUR" | "DAY" | "MONTH" | "YEAR"
+  granularity: "HOUR" | "DAY" | "MONTH" | "YEAR",
+  isCurrentMonth: boolean = false
 ): DashboardChartData => {
   const now = new Date();
   
@@ -336,9 +337,20 @@ export const generateChartData = (
         points.push({ label: format(hour, "ha"), date: hour });
       }
     } else if (granularity === "DAY") {
-      for (let i = 29; i >= 0; i--) {
-        const day = subDays(now, i);
-        points.push({ label: format(day, "MMM d"), date: day });
+      if (isCurrentMonth) {
+        // For "This Month", show only the days in the current month
+        const monthStart = startOfMonth(now);
+        const daysInMonth = getDaysInMonth(now);
+        for (let i = 0; i < daysInMonth; i++) {
+          const day = addDays(monthStart, i);
+          points.push({ label: format(day, "MMM d"), date: day });
+        }
+      } else {
+        // For "This Week" or "Custom", show last 7 days
+        for (let i = 6; i >= 0; i--) {
+          const day = subDays(now, i);
+          points.push({ label: format(day, "MMM d"), date: day });
+        }
       }
     } else if (granularity === "MONTH") {
       for (let i = 11; i >= 0; i--) {
