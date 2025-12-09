@@ -91,7 +91,8 @@ export function TimeTrendChart({ datePreset }: TimeTrendChartProps) {
   const [hideEmpty, setHideEmpty] = useState(false);
 
   const granularity = getGranularity(datePreset);
-  const chartData = generateChartData(mockPnLData, granularity);
+  const isCurrentMonth = datePreset === "this_month";
+  const chartData = generateChartData(mockPnLData, granularity, isCurrentMonth);
   const allData = aggregateChartData(chartData);
   
   // Filter out empty periods if checkbox is checked
